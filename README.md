@@ -1,3 +1,6 @@
+## What is this repository for?
+This repository is a Rust on ESP project that demonstrates how to use run a webdav server on a esp32 board. By using Rust crates and the esp-idf library I am surprised by the power of Rust and how easy it is to build a webdav server.
+
 ## Pre-requisites
 - Install Rust
   - Follow [rustup](https://rustup.rs/) to install Rust.
