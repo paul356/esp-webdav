@@ -24,3 +24,8 @@
 - Check the output
 
         cargo espflash monitor
+
+## References
+- [esp32-tokio-demo](https://github.com/jasta/esp32-tokio-demo/tree/main) by jasta. Great work.
+- [esp-idf-template](https://github.com/esp-rs/esp-idf-template) for how to generate a Rust on ESP template project.
+- [esp-idf-sys document](https://docs.esp-rs.org/esp-idf-sys/esp_idf_sys/) for how to customize a Rust on ESP project.
