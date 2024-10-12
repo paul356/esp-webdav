@@ -1,8 +1,9 @@
 ## What is this repository for?
 This repository is a Rust on ESP project that demonstrates how to use run a webdav server on a esp32 board. I am surprised by the power of Rust. By using Rust crates and the esp-idf library I can easily build a webdav server for esp32 boards.
 
-NOTE 2024/10/11: I face a critical problem with using dav-server. The stack size is less than 20 kb using hyper only. But the stack size overshots when I include dav-server. It constantly causes stackoverflow issues on esp32s3. It is probably due to extensive usage of futures in the dav-server crate. I will try to investigate it further. If I can't workarround it, I will try to implement a simple webdav server myself.
-UPDATE 2024/10/12: Good news. I don't how to implement a webdav server myself. It turns out that I need to specify a stack size for my created tokio executer. The default stack size of task thread is way too small as of 1KB. I increase it to 32KB and the stackoverflow issue is gone. Now I can run dav-server on my esp32s3 dev-kit. Though there is still some issues but I think they are solvable.
+__NOTE 2024/10/11__: I face a critical problem with using dav-server. The stack size is less than 20 kb using hyper only. But the stack size overshots when I include dav-server. It constantly causes stackoverflow issues on esp32s3. It is probably due to extensive usage of futures in the dav-server crate. I will try to investigate it further. If I can't workarround it, I will try to implement a simple webdav server myself.
+
+__UPDATE 2024/10/12__: Good news. I don't how to implement a webdav server myself. It turns out that I need to specify a stack size for my created tokio executer. The default stack size of task thread is way too small as of 1KB. I increase it to 32KB and the stackoverflow issue is gone. Now I can run dav-server on my esp32s3 dev-kit. Though there is still some issues but I think they are solvable.
 
 ## Pre-requisites
 - Install Rust
