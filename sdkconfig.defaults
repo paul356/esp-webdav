@@ -1,5 +1,5 @@
 # Rust often needs a bit of an extra main task stack size compared to C (the default is 3K)
-CONFIG_ESP_MAIN_TASK_STACK_SIZE=12000
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=32000
 
 # Use this to set FreeRTOS kernel tick frequency to 1000 Hz (100 Hz by default).
 # This allows to use 1 ms granularity for thread sleeps (10 ms by default).
@@ -12,3 +12,9 @@ CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+CONFIG_ESP_SYSTEM_PANIC_GDBSTUB=y
+CONFIG_ESP_GDBSTUB_ENABLED=y
+# CONFIG_ESP_SYSTEM_GDBSTUB_RUNTIME is not set
+CONFIG_ESP_GDBSTUB_SUPPORT_TASKS=y
+CONFIG_ESP_GDBSTUB_MAX_TASKS=32
+

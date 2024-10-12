@@ -6,9 +6,9 @@ use esp_idf_svc::sys::{esp_vfs_fat_mount_config_t, CONFIG_WL_SECTOR_SIZE, esp_vf
 use esp_idf_svc::timer::EspTaskTimerService;
 use esp_idf_svc::wifi::{AsyncWifi, EspWifi};
 use esp_idf_sys as _;
-use esp_idf_sys::{esp, esp_app_desc, EspError};
+use esp_idf_sys::{esp, esp_app_desc, EspError, ESP_OK, uxTaskGetStackHighWaterMark};
 use log::info;
-use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::fs::File;
 use std::ffi::CString;
@@ -20,6 +20,7 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
+use dav_server::{fakels::FakeLs, localfs::LocalFs, DavHandler};
 
 // Edit these or provide your own way of provisioning...
 const WIFI_SSID: &str = env!("WIFI_SSID");
@@ -60,7 +61,7 @@ fn main() -> anyhow::Result<()> {
     let base_path = CString::new("/vfat")?;
     let partition_label = CString::new("storage")?;
 
-    let _ = unsafe {
+    let ret = unsafe {
         esp_vfs_fat_spiflash_mount_rw_wl(
             base_path.as_ptr(),
             partition_label.as_ptr(),
@@ -68,12 +69,10 @@ fn main() -> anyhow::Result<()> {
             &mut wl_handle,
         )
     };
-
-    /*
-    let mut file = File::create("/vfat/hello.txt")?;
-    file.write_all(b"Hello, world!")?;
-    drop(file);
-    */
+    if ret != ESP_OK {
+        info!("vfs fat mount failed: ret={}", ret);
+        return Err(EspError::from_non_zero(NonZero::new(ret).unwrap()).into());
+    }
 
     info!("Initializing Wi-Fi...");
     let wifi = AsyncWifi::wrap(
@@ -85,14 +84,14 @@ fn main() -> anyhow::Result<()> {
     info!("Starting async run loop");
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
+        .thread_stack_size(32 * 1024)
         .build()?
         .block_on(async move {
-            let mut f = File::open("/vfat/hello.txt").await.map_err(|_| EspError::from_non_zero(NonZero::new(1).unwrap()))?;
-            let mut buffer = [0; 20];
+            let mut f = File::create("/vfat/hello.txt").await.map_err(|_| EspError::from_non_zero(NonZero::new(1).unwrap()))?;
 
+            let content = b"Hello, world!";
             // read up to 10 bytes
-            let n = f.read(&mut buffer).await.map_err(|_| EspError::from_non_zero(NonZero::new(1).unwrap()))?;
-            info!("content of hello.txt: {:?}", String::from_utf8(buffer[..n].to_vec()));
+            let n = f.write(content).await.map_err(|_| EspError::from_non_zero(NonZero::new(1).unwrap()))?;
             
             let mut wifi_loop = WifiLoop { wifi };
             wifi_loop.configure().await?;
@@ -109,34 +108,54 @@ fn main() -> anyhow::Result<()> {
 
 async fn hyper_server() -> anyhow::Result<()> {
     let addr = format!("0.0.0.0:3000");
+    let dir = "/vfat";
 
-    // We create a TcpListener and bind it to 127.0.0.1:3000
-    let listener = TcpListener::bind(&addr).await?;
+    let dav_server = Box::new(DavHandler::builder()
+                              .filesystem(LocalFs::new(dir, false, false, false))
+                              .locksystem(FakeLs::new())
+                              .build_handler());
+
+    let listener = TcpListener::bind(addr).await?;
+
+    let size = unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) };
+    info!("Stack high watermark 1: {}", size);
 
     // We start a loop to continuously accept incoming connections
     loop {
         let (stream, _) = listener.accept().await?;
+        let dav_server = dav_server.clone();
 
         // Use an adapter to access something implementing `tokio::io` traits as if they implement
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
+        let size = unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) };
+        info!("Stack high watermark 2: {}", size);
+
         // Spawn a tokio task to serve multiple connections concurrently
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             // Finally, we bind the incoming connection to our `hello` service
-            if let Err(err) = http1::Builder::new()
-            // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service_fn(hello))
-                .await
+            if let Err(err) = http1::Builder::new().serve_connection(
+                io,
+                service_fn(move |req| {
+                    let dav_server = dav_server.clone();
+                    let size = unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) };
+                    info!("Stack high watermark 3: {}", size);
+
+                    async move {
+                        info!("accept webdav request {}", req.uri());
+                        let size = unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) };
+                        info!("Stack high watermark 4: {}", size);
+                        Ok::<_, Infallible>(dav_server.handle(req).await)
+                    }
+                })).await
             {
                 eprintln!("Error serving connection: {:?}", err);
             }
         });
     }
-}
 
-async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
+    Ok(())
 }
 
 pub struct WifiLoop<'a> {

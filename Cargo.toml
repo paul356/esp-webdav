@@ -46,6 +46,7 @@ esp-idf-sys = "0.35.0"
 hyper = { version = "1.4.1", features = ["http1", "server"] }
 hyper-util = { version = "0.1.9", features = ["tokio"] }
 http-body-util = "0.1.2"
+dav-server = "0.7.0"
 
 [build-dependencies]
 embuild = "0.32.0"
