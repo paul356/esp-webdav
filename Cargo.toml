@@ -1,13 +1,13 @@
 [package]
-name = "hello-esp-rust"
+name = "micro-storage"
 version = "0.1.0"
-authors = ["Paul356 <panhao356@gmail.com>"]
+authors = ["Paul356"]
 edition = "2021"
 resolver = "2"
 rust-version = "1.77"
 
 [[bin]]
-name = "hello-esp-rust"
+name = "micro-storage"
 harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
 
 [profile.release]
