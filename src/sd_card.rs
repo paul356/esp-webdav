@@ -9,7 +9,7 @@ use esp_idf_svc::sys::{
     sdmmc_host_io_int_wait, sdmmc_host_set_bus_ddr_mode, sdmmc_host_set_bus_width,
     sdmmc_host_set_card_clk, sdmmc_host_set_cclk_always_on, sdmmc_host_set_input_delay,
     sdmmc_host_t, sdmmc_host_t__bindgen_ty_1, sdmmc_slot_config_t,
-    sdmmc_slot_config_t__bindgen_ty_1, sdmmc_slot_config_t__bindgen_ty_2, ESP_OK, EspError
+    sdmmc_slot_config_t__bindgen_ty_1, sdmmc_slot_config_t__bindgen_ty_2, ESP_OK,
 };
 
 const SDMMC_SLOT_FLAG_INTERNAL_PULLUP: c_uint = 1 << 0;
