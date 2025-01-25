@@ -6,6 +6,7 @@ use esp_idf_svc::timer::EspTaskTimerService;
 use esp_idf_svc::wifi::{AsyncWifi, EspWifi};
 use esp_idf_sys::EspError;
 use log::info;
+use tokio::time::sleep;
 
 // Edit these or provide your own way of provisioning...
 const WIFI_SSID: &str = env!("WIFI_SSID");
@@ -54,6 +55,7 @@ impl<'a> WifiLoop<'a> {
 
     async fn do_connect_loop(&mut self, exit_after_first_connect: bool) -> Result<(), EspError> {
         let wifi = &mut self.wifi;
+        let mut err_cnt = 0;
         loop {
             // Wait for disconnect before trying to connect again.  This loop ensures
             // we stay connected and is commonly missing from trivial examples as it's
@@ -63,13 +65,19 @@ impl<'a> WifiLoop<'a> {
             wifi.wifi_wait(|wifi| wifi.is_up(), None).await?;
 
             info!("Connecting to Wi-Fi...");
-            wifi.connect().await?;
+            let conn_res = wifi.connect().await;
+            if let Err(esp_err) = conn_res {
+                info!("Failed to connect to Wi-Fi: {:?}", esp_err);
+                sleep(std::time::Duration::from_secs(1)).await;
+                err_cnt += 1;
+            } else {
+                info!("Waiting for association...");
+                wifi.ip_wait_while(|wifi| wifi.is_up().map(|s| !s), None)
+                    .await?;
+                err_cnt = 0;
+            }
 
-            info!("Waiting for association...");
-            wifi.ip_wait_while(|wifi| wifi.is_up().map(|s| !s), None)
-                .await?;
-
-            if exit_after_first_connect {
+            if exit_after_first_connect && (err_cnt == 0 || err_cnt >= 5) {
                 return Ok(());
             }
         }

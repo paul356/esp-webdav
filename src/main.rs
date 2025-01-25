@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
     const MOUNT_POINT: &str = "/vfat";
 
     let mut sd = sd_card::SdCard::new(MOUNT_POINT);
-    sd.mount()?;
+    sd.mount_spi()?;
     //mount_builtin_fat(MOUNT_POINT)?;
 
     let mut wifi = esp_wifi::WifiLoop::new()?;
@@ -72,7 +72,6 @@ fn main() -> anyhow::Result<()> {
         .build()?
         .block_on(async move {
             wifi.configure().await?;
-            wifi.initial_connect().await?;
 
             tokio::spawn(dav_handler::hyper_server(MOUNT_POINT, 3000));
             
