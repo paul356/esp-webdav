@@ -41,7 +41,7 @@ pub async fn hyper_server(srv_root: &str, port: u32) -> anyhow::Result<()> {
                     async move {
                         let free_size = unsafe { heap_caps_get_free_size(MALLOC_CAP_8BIT) };
                         let max_size = unsafe { heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) };
-                        info!("Free size: {}, Max size: {}", free_size, max_size);
+                        info!("Mem Free size: {}, Max size: {}", free_size, max_size);
 
                         info!("accept webdav request {}", req.uri());
                         let uri = req.uri().clone();
