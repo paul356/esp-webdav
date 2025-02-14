@@ -9,6 +9,7 @@ use std::ffi::CString;
 use log::info;
 use std::convert::Infallible;
 use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 
 // This is a macro provided by the build script that generates a static reference to the
 esp_app_desc!();
@@ -61,15 +62,74 @@ async fn test_file_perf(mount_point: &str) -> anyhow::Result<()> {
 
         let beg = tokio::time::Instant::now();
 
-        for i in 0..200 {
+        for _i in 0..400 {
             let size = file.read(&mut read_buf).await?;
             read_size += size;
         }
 
-        info!("Read {} bytes in {:?}", read_size, beg.elapsed());
+        info!("[Async] Read {} bytes in {:?}", read_size, beg.elapsed());
 
         Ok::<_, anyhow::Error>(())
     }).await?
+}
+
+async fn test_wfile_perf(mount_point: &str) -> anyhow::Result<()> {
+    let file_path = format!("{}/wfile_async.bin", mount_point);
+
+    tokio::task::spawn(async move {
+        let mut file = tokio::fs::File::create(file_path).await?;
+        let mut write_buf = std::vec![0xfu8;32*1024];
+        let mut write_size: usize = 0;
+
+        let beg = tokio::time::Instant::now();
+
+        for _i in 0..400 {
+            let size = file.write(&mut write_buf).await?;
+            write_size += size;
+        }
+
+        info!("[Async] Write {} bytes in {:?}", write_size, beg.elapsed());
+
+        Ok::<_, anyhow::Error>(())
+    }).await?
+}
+
+fn test_file_sync(mount_point: &str) -> anyhow::Result<()> {
+    let file_path = format!("{}/habanera.mp4", mount_point);
+    let mut file = std::fs::File::open(file_path)?;
+    let mut read_buf = std::vec![0;32*1024];
+    let mut read_size: usize = 0;
+
+    let beg = tokio::time::Instant::now();
+
+    use std::io::Read;
+    for _i in 0..400 {
+        let size = file.read(&mut read_buf).unwrap();
+        read_size += size;
+    }
+
+    info!("[Sync] Read {} bytes in {:?}", read_size, beg.elapsed());
+
+    Ok::<_, anyhow::Error>(())
+}
+
+fn test_wfile_sync(mount_point: &str) -> anyhow::Result<()> {
+    let file_path = format!("{}/wfile_sync.bin", mount_point);
+    let mut file = std::fs::File::create(file_path)?;
+    let mut write_buf = std::vec![3u8;32*1024];
+    let mut write_size: usize = 0;
+
+    let beg = tokio::time::Instant::now();
+
+    use std::io::Write;
+    for _i in 0..400 {
+        let size = file.write(&mut write_buf).unwrap();
+        write_size += size;
+    }
+
+    info!("[Sync] Write {} bytes in {:?}", write_size, beg.elapsed());
+
+    Ok::<_, anyhow::Error>(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -81,7 +141,7 @@ fn main() -> anyhow::Result<()> {
     const MOUNT_POINT: &str = "/vfat";
 
     let mut sd = sd_card::SdCard::new(MOUNT_POINT);
-    sd.mount_spi()?;
+    sd.mount_sdmmc()?;
     //mount_builtin_fat(MOUNT_POINT)?;
 
     let mpoint = CString::new(MOUNT_POINT).unwrap();
@@ -96,6 +156,9 @@ fn main() -> anyhow::Result<()> {
     };
     info!("Vfs Total size: {}, Free size: {}", total_size, free_size);
 
+    test_file_sync(MOUNT_POINT);
+    test_wfile_sync(MOUNT_POINT);
+
     let mut wifi = esp_wifi::WifiLoop::new()?;
 
     info!("Starting async run loop");
@@ -109,6 +172,7 @@ fn main() -> anyhow::Result<()> {
             wifi.initial_connect().await?;
 
             test_file_perf(MOUNT_POINT).await?;
+            test_wfile_perf(MOUNT_POINT).await?;
 
             tokio::spawn(dav_handler::hyper_server(MOUNT_POINT, 3000));
             
