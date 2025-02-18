@@ -52,6 +52,6 @@ dav-server = "0.7.0"
 embuild = "0.32.0"
 
 [package.metadata.esp-idf-sys]
-esp_idf_tools_install_dir = "fromenv"
+esp_idf_tools_install_dir = "global"
 esp_idf_sdkconfig = "sdkconfig"
 esp_idf_sdkconfig_defaults = ["sdkconfig.defaults", "sdkconfig.defaults.ble"]

@@ -85,19 +85,19 @@ impl SdCard {
 
         let slot_config = sdmmc_slot_config_t {
             clk: 7,
-            cmd: 6,
-            d0: 15,
-            d1: 16,
-            d2: 4,
-            d3: 5,
+            cmd: 15,
+            d0: 6,
+            d1: 5,
+            d2: 17,
+            d3: 16,
             d4: -1,
             d5: -1,
             d6: -1,
             d7: -1,
-            __bindgen_anon_1: sdmmc_slot_config_t__bindgen_ty_1 { cd: 17 },
+            __bindgen_anon_1: sdmmc_slot_config_t__bindgen_ty_1 { cd: 4 },
             __bindgen_anon_2: sdmmc_slot_config_t__bindgen_ty_2 { wp: -1 },
             width: 4,
-            flags: SDMMC_SLOT_FLAG_INTERNAL_PULLUP,
+            flags: 0,
         };
 
         let mut card_handle: *mut sdmmc_card_t = std::ptr::null_mut();
