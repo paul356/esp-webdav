@@ -141,7 +141,7 @@ fn main() -> anyhow::Result<()> {
     const MOUNT_POINT: &str = "/vfat";
 
     let mut sd = sd_card::SdCard::new(MOUNT_POINT);
-    sd.mount_sdmmc()?;
+    sd.mount_spi()?;
     //mount_builtin_fat(MOUNT_POINT)?;
 
     let mpoint = CString::new(MOUNT_POINT).unwrap();
@@ -156,7 +156,7 @@ fn main() -> anyhow::Result<()> {
     };
     info!("Vfs Total size: {}, Free size: {}", total_size, free_size);
 
-    test_file_sync(MOUNT_POINT);
+    //test_file_sync(MOUNT_POINT);
     test_wfile_sync(MOUNT_POINT);
 
     let mut wifi = esp_wifi::WifiLoop::new()?;
@@ -171,7 +171,7 @@ fn main() -> anyhow::Result<()> {
             wifi.configure().await?;
             wifi.initial_connect().await?;
 
-            test_file_perf(MOUNT_POINT).await?;
+            //test_file_perf(MOUNT_POINT).await?;
             test_wfile_perf(MOUNT_POINT).await?;
 
             tokio::spawn(dav_handler::hyper_server(MOUNT_POINT, 3000));
